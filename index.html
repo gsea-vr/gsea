@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G-Sea - VR</title>
+<meta name="description" content="G-Sea is an underwater VR game about exploration, sharks, and discovering the ocean!">
+<link rel="icon" href="gsea.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-bg" aria-hidden="true">
+  <canvas id="waterCanvas"></canvas>
+</div>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="#top" class="brand">
+      <img src="gsea.png" alt="G-Sea" class="brand-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+      <span class="brand-logo-fallback" style="display:none;">G</span>
+      <span class="brand-name">G-Sea</span>
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#top">Home</a>
+      <a href="#about">About</a>
+      <a href="#team">Team</a>
+      <a href="#community">Community</a>
+    </nav>
+
+    <div class="navbar-actions">
+      <a class="btn btn-primary btn-sm" href="https://discord.gg/Nkt3K7Wasc" target="_blank" rel="noopener">Join Discord</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-content">
+    <img src="gsea.png" alt="G-Sea logo" class="hero-logo" onerror="this.style.display='none';">
+    <h1 class="hero-title">G-Sea</h1>
+    <p class="hero-subtitle">An underwater VR adventure.</p>
+
+    <div class="hero-actions">
+      <a href="#community" class="btn btn-primary">Join Community</a>
+      <a href="#team" class="btn btn-ghost">Meet the Team</a>
+    </div>
+  </div>
+</section>
+
+<section class="about" id="about">
+  <div class="section-inner about-inner">
+    <h2>About G-Sea</h2>
+    <p>
+      G-Sea is an underwater VR game built around exploration. Dive through open
+      water, encounter sharks, and work your way through progression, gear, and
+      challenges as you collect Pearls and uncover different parts of the ocean.
+    </p>
+  </div>
+</section>
+
+<section class="team" id="team">
+  <div class="section-inner">
+    <div class="section-heading">
+      <h2>Meet the Team</h2>
+    </div>
+
+    <div class="team-grid" id="teamGrid">
+    </div>
+  </div>
+</section>
+
+<section class="community" id="community">
+  <div class="section-inner community-inner">
+    <h2>Join the G-Sea community</h2>
+    <p>Follow development, give feedback, report bugs, and meet other players.</p>
+    <a href="https://discord.gg/Nkt3K7Wasc" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Join Discord</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="section-inner footer-inner">
+    <a href="#top" class="footer-brand">
+      <img src="gsea.png" alt="G-Sea" class="footer-logo" onerror="this.style.display='none';">
+      <span>G-Sea</span>
+    </a>
+    <p class="footer-copy">© 2026 G-Sea</p>
+    <a href="https://discord.gg/Nkt3K7Wasc" target="_blank" rel="noopener" class="footer-link">Discord</a>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
