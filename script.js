@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initTeam();
   initWaterBackground();
+  initDescentStory();
+  initDepthFade();
 });
 
 function initNavbar() {
@@ -62,6 +64,53 @@ function initScrollReveal() {
   );
 
   targets.forEach((el) => observer.observe(el));
+}
+
+/* ---------- Scroll-driven "descent" story sections ---------- */
+
+function initDescentStory() {
+  const steps = document.querySelectorAll('.descent-step');
+  if (!steps.length) return;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+        }
+      });
+    },
+    { threshold: 0.35 }
+  );
+
+  steps.forEach((step) => observer.observe(step));
+}
+
+/* Darkens the background gradient gradually as the user scrolls further down,
+   selling the feeling of sinking deeper underwater. */
+function initDepthFade() {
+  const root = document.documentElement;
+  let ticking = false;
+
+  const update = () => {
+    const scrollable = document.body.scrollHeight - window.innerHeight;
+    const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+    root.style.setProperty('--depth', Math.min(progress * 1.4, 1).toFixed(3));
+    ticking = false;
+  };
+
+  update();
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
+  window.addEventListener('resize', update, { passive: true });
 }
 
 const TEAM = [
@@ -223,6 +272,17 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+/* ---------- Realistic water background ----------
+   Layered approach:
+   - deep gradient wash that shifts with scroll depth (handled in CSS via --depth)
+   - multiple sine-based wave bands with slightly randomized phase/amplitude for a
+     non-repeating look, rendered with soft additive-style gradients
+   - a subtle refraction-like "caustics" layer: overlapping translucent ellipses
+     that drift and pulse, approximating light patterns underwater
+   - light shafts (God rays) that sway
+   - bubbles with parallax speed variation and soft highlights
+   - fine surface "noise" specks for texture, like suspended particulate
+*/
 function initWaterBackground() {
   const canvas = document.getElementById('waterCanvas');
   if (!canvas) return;
@@ -232,8 +292,11 @@ function initWaterBackground() {
   let bubbles = [];
   let waveLayers = [];
   let rays = [];
+  let caustics = [];
+  let particles = [];
   let time = 0;
   let animationId;
+  let scrollFactor = 0;
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -248,52 +311,89 @@ function initWaterBackground() {
 
   function setupWaves() {
     waveLayers = [
-      { amplitude: 14, wavelength: 340, speed: 0.10, yOffset: height * 0.12, opacity: 0.05, hueTop: '150,200,255', hueBottom: '20,60,110' },
-      { amplitude: 20, wavelength: 260, speed: 0.16, yOffset: height * 0.30, opacity: 0.06, hueTop: '120,180,250', hueBottom: '10,40,90' },
-      { amplitude: 26, wavelength: 200, speed: 0.24, yOffset: height * 0.52, opacity: 0.07, hueTop: '90,150,235', hueBottom: '5,20,55' },
+      { amplitude: 12, wavelength: 380, speed: 0.09, yOffset: height * 0.10, opacity: 0.045, hueTop: '150,200,255', hueBottom: '20,60,110' },
+      { amplitude: 18, wavelength: 300, speed: 0.14, yOffset: height * 0.26, opacity: 0.055, hueTop: '120,180,250', hueBottom: '10,40,90' },
+      { amplitude: 24, wavelength: 230, speed: 0.20, yOffset: height * 0.46, opacity: 0.065, hueTop: '95,155,235', hueBottom: '6,24,58' },
+      { amplitude: 30, wavelength: 170, speed: 0.27, yOffset: height * 0.68, opacity: 0.07, hueTop: '70,130,215', hueBottom: '3,14,38' },
     ];
   }
 
   function setupRays() {
-    const count = 4;
+    const count = 5;
     rays = Array.from({ length: count }, (_, i) => ({
       x: (width / (count + 1)) * (i + 1) + (Math.random() - 0.5) * 60,
-      width: 60 + Math.random() * 50,
-      swaySpeed: 0.15 + Math.random() * 0.1,
-      swayAmount: 20 + Math.random() * 15,
+      width: 50 + Math.random() * 55,
+      swaySpeed: 0.12 + Math.random() * 0.12,
+      swayAmount: 24 + Math.random() * 20,
       phase: Math.random() * Math.PI * 2,
+      flickerSpeed: 0.6 + Math.random() * 0.8,
+      flickerPhase: Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function setupCaustics() {
+    const count = Math.max(5, Math.min(9, Math.floor(width / 220)));
+    caustics = Array.from({ length: count }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height * 0.8,
+      radiusX: 90 + Math.random() * 140,
+      radiusY: 30 + Math.random() * 50,
+      driftSpeed: 0.05 + Math.random() * 0.08,
+      pulseSpeed: 0.3 + Math.random() * 0.4,
+      phase: Math.random() * Math.PI * 2,
+      angle: Math.random() * Math.PI,
     }));
   }
 
   function spawnBubble(randomY) {
-    const radius = 1.5 + Math.random() * 3;
+    const radius = 1.2 + Math.random() * 3.4;
     return {
       x: Math.random() * width,
       y: randomY ? Math.random() * height : height + radius + 10,
       radius,
-      speed: 0.12 + Math.random() * 0.28,
-      drift: (Math.random() - 0.5) * 0.25,
-      opacity: 0.06 + Math.random() * 0.1,
+      speed: 0.1 + Math.random() * 0.32,
+      drift: (Math.random() - 0.5) * 0.28,
+      opacity: 0.05 + Math.random() * 0.11,
       wobble: Math.random() * Math.PI * 2,
     };
   }
 
   function setupBubbles() {
-    const count = Math.max(10, Math.min(20, Math.floor(width / 90)));
+    const count = Math.max(12, Math.min(26, Math.floor(width / 75)));
     bubbles = Array.from({ length: count }, () => spawnBubble(true));
+  }
+
+  function spawnParticle(randomY) {
+    return {
+      x: Math.random() * width,
+      y: randomY ? Math.random() * height : -5,
+      radius: 0.4 + Math.random() * 0.8,
+      speed: 0.04 + Math.random() * 0.08,
+      drift: (Math.random() - 0.5) * 0.1,
+      opacity: 0.03 + Math.random() * 0.05,
+    };
+  }
+
+  function setupParticles() {
+    const count = Math.max(20, Math.min(46, Math.floor((width * height) / 26000)));
+    particles = Array.from({ length: count }, () => spawnParticle(true));
   }
 
   function drawWaveLayer(layer, t) {
     const { amplitude, wavelength, speed, yOffset, opacity, hueTop, hueBottom } = layer;
     const phase = t * speed;
+    const ampBoost = 1 + scrollFactor * 0.35;
 
     ctx.beginPath();
     ctx.moveTo(0, height);
     ctx.lineTo(0, yOffset);
 
-    const step = 12;
+    const step = 10;
     for (let x = 0; x <= width; x += step) {
-      const y = yOffset + Math.sin(x / wavelength + phase) * amplitude;
+      const y =
+        yOffset +
+        Math.sin(x / wavelength + phase) * amplitude * ampBoost +
+        Math.sin(x / (wavelength * 0.4) + phase * 1.7) * (amplitude * 0.18);
       ctx.lineTo(x, y);
     }
 
@@ -308,30 +408,34 @@ function initWaterBackground() {
 
     ctx.beginPath();
     for (let x = 0; x <= width; x += step) {
-      const y = yOffset + Math.sin(x / wavelength + phase) * amplitude;
+      const y =
+        yOffset +
+        Math.sin(x / wavelength + phase) * amplitude * ampBoost +
+        Math.sin(x / (wavelength * 0.4) + phase * 1.7) * (amplitude * 0.18);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = `rgba(200, 225, 255, ${opacity * 1.8})`;
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = `rgba(205, 228, 255, ${opacity * 2})`;
+    ctx.lineWidth = 1.2;
     ctx.stroke();
   }
 
   function drawRays(t) {
     rays.forEach((ray) => {
       const sway = Math.sin(t * ray.swaySpeed + ray.phase) * ray.swayAmount;
+      const flicker = 0.7 + Math.sin(t * ray.flickerSpeed + ray.flickerPhase) * 0.3;
       const x = ray.x + sway;
 
-      const gradient = ctx.createLinearGradient(x, 0, x, height * 0.75);
-      gradient.addColorStop(0, 'rgba(160, 200, 255, 0.05)');
-      gradient.addColorStop(1, 'rgba(160, 200, 255, 0)');
+      const gradient = ctx.createLinearGradient(x, 0, x, height * 0.8);
+      gradient.addColorStop(0, `rgba(170, 205, 255, ${0.055 * flicker})`);
+      gradient.addColorStop(1, 'rgba(170, 205, 255, 0)');
 
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(x - ray.width / 2, 0);
       ctx.lineTo(x + ray.width / 2, 0);
-      ctx.lineTo(x + ray.width / 4, height * 0.75);
-      ctx.lineTo(x - ray.width / 4, height * 0.75);
+      ctx.lineTo(x + ray.width / 4, height * 0.8);
+      ctx.lineTo(x - ray.width / 4, height * 0.8);
       ctx.closePath();
       ctx.fillStyle = gradient;
       ctx.fill();
@@ -339,9 +443,45 @@ function initWaterBackground() {
     });
   }
 
+  function drawCaustics(t) {
+    caustics.forEach((c) => {
+      const pulse = 0.6 + Math.sin(t * c.pulseSpeed + c.phase) * 0.4;
+      const dx = Math.cos(c.angle) * Math.sin(t * c.driftSpeed + c.phase) * 40;
+      const dy = Math.sin(c.angle) * Math.cos(t * c.driftSpeed + c.phase) * 24;
+
+      ctx.save();
+      ctx.translate(c.x + dx, c.y + dy);
+      ctx.rotate(c.angle + Math.sin(t * 0.05) * 0.2);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, c.radiusX, c.radiusY, 0, 0, Math.PI * 2);
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(c.radiusX, c.radiusY));
+      grad.addColorStop(0, `rgba(150, 210, 255, ${0.05 * pulse})`);
+      grad.addColorStop(1, 'rgba(150, 210, 255, 0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  function drawParticles() {
+    particles.forEach((p) => {
+      p.y += p.speed;
+      p.x += p.drift;
+
+      if (p.y > height + 5) {
+        Object.assign(p, spawnParticle(false));
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(210, 228, 250, ${p.opacity})`;
+      ctx.fill();
+    });
+  }
+
   function drawBubbles() {
     bubbles.forEach((b) => {
-      b.y -= b.speed;
+      b.y -= b.speed * (1 + scrollFactor * 0.3);
       b.wobble += 0.008;
       b.x += Math.sin(b.wobble) * b.drift * 0.5;
 
@@ -367,7 +507,9 @@ function initWaterBackground() {
     time += 0.01;
 
     drawRays(time);
+    drawCaustics(time);
     waveLayers.forEach((layer) => drawWaveLayer(layer, time));
+    drawParticles();
     drawBubbles();
 
     animationId = requestAnimationFrame(draw);
@@ -377,10 +519,18 @@ function initWaterBackground() {
     resize();
     setupWaves();
     setupRays();
+    setupCaustics();
     setupBubbles();
+    setupParticles();
+  }
+
+  function onScroll() {
+    const scrollable = document.body.scrollHeight - window.innerHeight;
+    scrollFactor = scrollable > 0 ? Math.min(window.scrollY / scrollable, 1) : 0;
   }
 
   setup();
+  onScroll();
 
   if (!prefersReducedMotion) {
     draw();
@@ -388,6 +538,8 @@ function initWaterBackground() {
     draw();
     cancelAnimationFrame(animationId);
   }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   let resizeTimeout;
   window.addEventListener(
